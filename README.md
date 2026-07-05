@@ -88,40 +88,24 @@ The cast is a mnemonic: Dumbledore (Albus) plans and deploys everyone from above
 
 The whole mechanism is a state machine: one **plan** up front, then a small **"build → review → fix"** loop per checkpoint, then a **closeout** once all pass.
 
-```
-                          ┌──────────── PLAN — Albus (once) ────────────┐
-                          │ read source of truth → decompose into        │
-                          │ checkpoints → write living plan doc →         │
-                          │ define each checkpoint's gate                 │
-                          └──────────────────────┬──────────────────────┘
-                                                 │
-        ┌────────────────── PER CHECKPOINT (in dependency order) ───────────────────┐
-        │                                                                            │
-        │   ALBUS (orchestrator) ─[A: implementer brief]─▶ HARRY (implementer)      │
-        │        ▲                                      │                            │
-        │        │                              builds + runs gates                  │
-        │        └──────[B: delivery report]───────────┘                            │
-        │        │                                                                   │
-        │   orchestrator ──[C: review brief]──▶ SEVERUS (reviewer)                   │
-        │        ▲                                 │                                 │
-        │        │                        verifies + reruns gates + probes           │
-        │        └────────[D: review report]──────┘                                 │
-        │        │                                                                   │
-        │   verdict?                                                                 │
-        │     ├── REQUEST-CHANGES ──[E: findings relay]──▶ HARRY                     │
-        │     │        ▲                                       │                     │
-        │     │        └──────[F: fix report]─────────────────┘                     │
-        │     │        └──────▶ back to [C] (Severus re-reviews)                       │
-        │     │                                                                      │
-        │     └── APPROVE ──▶ orchestrator commits (code + plan update) +            │
-        │                     folds P3s/memos forward + advances to next CP          │
-        └────────────────────────────────────────────────────────────────────────────┘
-                                                 │
-                          ┌──────────────────────┴──────────────────────┐
-                          │ CLOSEOUT: acceptance mapping · reconcile      │
-                          │ deviations into spec · closeout doc ·         │
-                          │ name residual/manual-only risk explicitly     │
-                          └──────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    P["<b>PLAN — Albus (once)</b><br/>read source of truth · decompose into checkpoints<br/>write living plan doc · define each checkpoint's gate"]
+
+    subgraph LOOP["PER CHECKPOINT · in dependency order"]
+        direction TB
+        A["Albus dispatches<br/><b>[A]</b> implementer brief"] --> H["<b>HARRY</b> · implementer<br/>builds + runs gates"]
+        H -->|"[B] delivery report"| C["Albus dispatches<br/><b>[C]</b> review brief"]
+        C --> S["<b>SEVERUS</b> · reviewer<br/>verifies + reruns gates + probes"]
+        S -->|"[D] review report"| V{"verdict?"}
+        V -->|"REQUEST-CHANGES · [E] findings relay"| F["<b>HARRY</b> fixes<br/>[F] fix report"]
+        F -->|"re-review"| C
+        V -->|"APPROVE"| K["Albus commits · code + plan update<br/>folds P3s / memos forward"]
+    end
+
+    P --> A
+    K -->|"next checkpoint"| A
+    K -->|"all checkpoints done"| Z["<b>CLOSEOUT</b><br/>acceptance mapping · reconcile deviations into spec<br/>closeout doc · name residual / manual-only risk"]
 ```
 
 **A checkpoint passes only when both conditions hold: Severus APPROVES** and **the gate is green.** Both, every time.
